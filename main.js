@@ -56,6 +56,15 @@
 	}
 })(); // h, svg
 
+
+/* --------------------================-------------------- */
+/*                       Functions yo                       */
+/* --------------------================-------------------- */
+
+function save() {
+	return JSON.stringify(drawing.history);
+}
+
 /* --------------------================-------------------- */
 /*                        UI Classes                        */
 /* --------------------================-------------------- */
@@ -246,26 +255,6 @@ class DrawingBoard {
 		]);
 	}
 }
-
-/*class PreviewPanel {
-	constructor() {
-		this.canvas = new PreviewCanvas(drawing.history);
-
-		this.element = this.render();
-	}
-
-	render() {
-		return h('div.panel', [
-			h('button', {
-				onclick: function() {
-					this.canvas.setHistory(drawing.history);
-				}.bind(this)
-			}, 'preview'),
-			h('br'),
-			this.canvas.element
-		]);
-	}
-}*/
 
 class PreviewCanvas {
 	constructor() {
