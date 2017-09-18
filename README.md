@@ -49,3 +49,5 @@ if 80% of people contribute 1
 and 20% of people contribute 5
 
 you would need 5000 - 6000 contributors to get over 10,000 sprites. Hopefully we can bring the average higher than 2 per person through gamification and rewards. Rewards would be similar to monetary rewards but are gained through participating in the crowdsourcing campaign.
+
+And good luck if even 50% of those 10,000 sprites are any good !
