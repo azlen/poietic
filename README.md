@@ -4,6 +4,7 @@ information I need to store:
 - drawing board size
 - palette
 - tags (or tag id's)
+
 :: for each pixel
     - coordinates
     - color (palette index / rgb values)
