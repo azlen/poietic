@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Poietic</title>
+
+	<style>
+		html, body {
+			margin: 0;
+			padding: 0;
+		}
+
+		* {
+			vertical-align: top;
+		}
+
+		.palette {
+			display: inline-block;
+
+			width: 144px;
+			font-size: 0; /* collapse whitespace */
+		}
+		.color {
+			display: inline-block;
+
+			width: 20px;
+			height: 20px;
+			outline: 1px solid #000000;
+			margin: 3px;
+			cursor: pointer;
+			font-size: 12px;
+
+		}
+		.color.selected {
+			outline: 3px solid #FF0000;
+		}
+
+		.drawingboard {
+			display: inline-block;
+
+			border: 1px solid #000;
+		}
+
+		.panel {
+			display: inline-block;
+		}
+		canvas {
+			image-rendering: optimizeSpeed;             /* Older versions of FF          */
+			image-rendering: -moz-crisp-edges;          /* FF 6.0+                       */
+			image-rendering: -webkit-optimize-contrast; /* Safari                        */
+			image-rendering: -o-crisp-edges;            /* OS X & Windows Opera (12.02+) */
+			image-rendering: pixelated;                 /* Awesome future-browsers       */
+			-ms-interpolation-mode: nearest-neighbor;   /* IE                            */
+		}
+	</style>
+</head>
+<body>
+	<script src="main.js"></script>
+</body>
+</html>
