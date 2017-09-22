@@ -62,7 +62,21 @@
 /* --------------------================-------------------- */
 
 function save() {
-	return JSON.stringify(drawing.history);
+	let lastStrokeNumber = 0;
+	let actualStrokeNumber = 0;
+	return `
+	${drawing.size.x}, ${drawing.size.y} |
+	${drawing.history.map(function(h) {
+		if(h.strokeNumber !== lastStrokeNumber){
+			actualStrokeNumber++;
+			lastStrokeNumber = h.strokeNumber;
+		}
+		return `
+		${h.coords.x}, ${h.coords.y},
+		${h.color}, ${actualStrokeNumber}
+		`
+	}).join('|')}
+	`.replace(/\s+/g, '');
 }
 
 /* --------------------================-------------------- */
@@ -112,11 +126,8 @@ class Palette {
 		this.element = this.render();
 	}
 
-	getSelectedColor() {
-		return this.rgbToString(this.palette[this.selected]);
-	}
-
 	rgbToString(c) {
+		if(c.constructor === Number) c = this.palette[c];
 		if(!c) return null;
 		return `rgb(${c.r}, ${c.g}, ${c.b})`
 	}
@@ -141,17 +152,25 @@ class Palette {
 }
 
 class DrawingBoard {
-	constructor() {
+	constructor(w, h) {
 		this.data = {};
 		this.history = [];
+
+		this.size = {
+			x: w || 16,
+			y: h || 16
+		}
+
+		this.strokeNumber = 0;
 
 		this.pixelSize = 16;
 
 		this.element = this.render();
+		this.updateSize();
 	}
 
 	globalToLocalPos(pos) {
-		let bbox = this.element.getBoundingClientRect();
+		let bbox = this.svg.getBoundingClientRect();
 		return {
 			x: pos.x - bbox.left - window.scrollX,
 			y: pos.y - bbox.top - window.scrollY
@@ -167,16 +186,18 @@ class DrawingBoard {
 
 	setPixel(coords, color) {
 		let key = `${coords.x},${coords.y}`;
-		if(this.data[key] !== color) {
-			this.data[key] = color;
+		let rgbString = palette.rgbToString(color)
+		if(this.data[key] !== rgbString) {
+			this.data[key] = rgbString;
 			this.history.push({
-				coords,
-				color,
+				coords: coords,
+				color: color,
+				strokeNumber: this.strokeNumber,
 				timestamp: new Date() * 1
 			});
 
-			if(color) {
-				this.getPixelElement(coords).setAttribute('fill', color);
+			if(rgbString) {
+				this.getPixelElement(coords).setAttribute('fill', rgbString);
 			} else {
 				this.removePixelElement(coords);
 			}
@@ -186,20 +207,20 @@ class DrawingBoard {
 	}
 
 	getPixelElement(coords) {
-		let element = this.element.querySelector(`[data-coords="${coords.x},${coords.y}"]`);
+		let element = this.svg.querySelector(`[data-coords="${coords.x},${coords.y}"]`);
 		if(!element) {
 			element = svg('rect', {
 				'width': this.pixelSize, 'height': this.pixelSize,
 				'x': coords.x * this.pixelSize, 'y': coords.y * this.pixelSize,
 				'data-coords': `${coords.x},${coords.y}`,
 			})
-			this.element.appendChild(element);
+			this.svg.appendChild(element);
 		}
 		return element;
 	}
 
 	removePixelElement(coords) {
-		let element = this.element.querySelector(`[data-coords="${coords.x},${coords.y}"]`);
+		let element = this.svg.querySelector(`[data-coords="${coords.x},${coords.y}"]`);
 		if(element) {
 			element.parentElement.removeChild(element);
 		}
@@ -212,46 +233,70 @@ class DrawingBoard {
 		this.setPixel(pixelCoords, color);
 	}
 
+	updateSize() {
+		this.svg.setAttribute('width', this.size.x * this.pixelSize);
+		this.svg.setAttribute('height', this.size.y * this.pixelSize);
+	}
+
 	render() {
-		return svg('svg.drawingboard', {
-			width: 256,
-			height: 256,
-			onclick: function(e) {
-				this.setPixelAtGlobalPos({
-					x: e.clientX,
-					y: e.clientY
-				}, palette.getSelectedColor());
-			}.bind(this),
-			onmousemove: function(e) {
-				if(e.buttons === 1) { // checks if mouse is down? not sure if this works cross-browser
+		return h('div.drawingboard', [
+			h('input', {
+				type: 'number',
+				value: this.size.x,
+				onchange: function(e) {
+					this.size.x = Number(e.target.value);
+					this.updateSize();
+				}.bind(this),
+			}),
+			h('input', {
+				type: 'number',
+				value: this.size.y,
+				onchange: function(e) {
+					this.size.y = Number(e.target.value);
+					this.updateSize();
+				}.bind(this),
+			}),
+			this.svg = svg('svg', {
+				'onmousedown': function(e) {
+					this.strokeNumber++;
+				}.bind(this),
+				'onclick': function(e) {
 					this.setPixelAtGlobalPos({
 						x: e.clientX,
 						y: e.clientY
-					}, palette.getSelectedColor());
-				}
-			}.bind(this),
-		}, [
-			svg('defs', [
-				svg('pattern #empty', { 
-					'width': 5, 'height': 5,
-					'patternUnits': 'userSpaceOnUse',
-				}, [
-					svg('line', {
-						'x1': 0, 'y1': 0,
-						'x2': 5, 'y2': 5,
-						'stroke': '#CCCCCC',
-					}),
-					svg('line', {
-						'x1': 0, 'y1': 5,
-						'x2': 5, 'y2': 0,
-						'stroke': '#CCCCCC',
-					})
-				])
+					}, palette.selected);
+				}.bind(this),
+				'onmousemove': function(e) {
+					if(e.buttons === 1) { // checks if mouse is down? not sure if this works cross-browser
+						this.setPixelAtGlobalPos({
+							x: e.clientX,
+							y: e.clientY
+						}, palette.selected);
+					}
+				}.bind(this),
+			}, [
+				svg('defs', [
+					svg('pattern #empty', { 
+						'width': 5, 'height': 5,
+						'patternUnits': 'userSpaceOnUse',
+					}, [
+						svg('line', {
+							'x1': 0, 'y1': 0,
+							'x2': 5, 'y2': 5,
+							'stroke': '#CCCCCC',
+						}),
+						svg('line', {
+							'x1': 0, 'y1': 5,
+							'x2': 5, 'y2': 0,
+							'stroke': '#CCCCCC',
+						})
+					])
+				]),
+				svg('rect', {
+					'x': 0, 'y': 0, 'width': '100%', 'height': '100%',
+					'fill': 'url(#empty)'
+				})
 			]),
-			svg('rect', {
-				'x': 0, 'y': 0, 'width': '100%', 'height': '100%',
-				'fill': 'url(#empty)'
-			})
 		]);
 	}
 }
@@ -289,7 +334,7 @@ class PreviewCanvas {
 			this.data[`${p.coords.x},${p.coords.y}`]*/
 			this.history.slice(0, this.frame).forEach(function(pix) {
 				if(pix.color) {
-					this.ctx.fillStyle = pix.color;
+					this.ctx.fillStyle = palette.rgbToString(pix.color);
 					this.ctx.fillRect(pix.coords.x, pix.coords.y, 1, 1);
 				} else {
 					this.ctx.clearRect(pix.coords.x, pix.coords.y, 1, 1);
@@ -301,11 +346,11 @@ class PreviewCanvas {
 	render() {
 		return h('div.panel', [
 			this.canvas = h('canvas', {
-				width: 16,
-				height: 16,
+				width: drawing.size.x,
+				height: drawing.size.y,
 				style: {
-					width: '128px',
-					height: '128px'
+					width: `${drawing.size.x * 8}px`,
+					height: `${drawing.size.y * 8}px`
 				}
 			})
 		]);
@@ -317,7 +362,7 @@ class PreviewCanvas {
 /* --------------------================-------------------- */
 
 let palette = new Palette();
-let drawing = new DrawingBoard();
+let drawing = new DrawingBoard(16, 20);
 let preview = new PreviewCanvas();
 
 /* --------------------================-------------------- */
@@ -327,3 +372,7 @@ let preview = new PreviewCanvas();
 document.body.appendChild(h('div', [
 	palette.element, drawing.element, preview.element
 ]));
+
+
+
+
